@@ -24,7 +24,7 @@ const multer = require("multer");
 const fs = require("fs");
 
 
-const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/dev";
+const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/test";
 
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   	.then(result => {
@@ -287,7 +287,8 @@ app.post('/server/editquestion/:id', authUser, (req, res) => {
 			});
 			await Question.updateOne({_id: id},{$set:{question: req.body.question,
 				options: options,
-				correct_answers: req.body.correct_answers}} )
+				correct_answers: req.body.correct_answers,
+				explaination: req.body.explaination}} )
 		}
 	 });
 	var redir = { message:"Success"};
@@ -296,7 +297,6 @@ app.post('/server/editquestion/:id', authUser, (req, res) => {
 
 app.post('/server/editinformation/:id', authUser, (req, res) => {	
 	var id = req.params.id;
-	// console.log('edited question', req.body);
 	Information.findById(id, async function(err, question) {
 		if(err){
 			console.log("ERROR", err);
@@ -849,6 +849,7 @@ app.post("/server/addquestions", authUser, authRole(["admin"]), (req, res) => {
 						question: req.body.question,
 						options: options,
 						correct_answers: req.body.correct_answers,
+						explaination: req.body.explaination,
 						skill: req.body.corresponding_skill,
 						category: req.body.corresponding_category,
 						sub_category: req.body.corresponding_sub_category

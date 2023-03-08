@@ -10,6 +10,9 @@ const question = new mongoose.Schema({
     correct_answers: [{
         type: Number,
     }],
+    explaination: {
+        type: String,
+    },
     skill: {
         type: String,
     },
