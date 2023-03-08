@@ -24,7 +24,7 @@ const multer = require("multer");
 const fs = require("fs");
 
 
-const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/test";
+const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/dev";
 
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   	.then(result => {
