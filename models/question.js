@@ -22,6 +22,9 @@ const question = new mongoose.Schema({
     sub_category: {
         type: String,
     },
+    imgpath:{
+        type:String,
+    },
 });
 
 module.exports = mongoose.model("Question", question);

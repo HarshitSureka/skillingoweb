@@ -24,7 +24,7 @@ const multer = require("multer");
 const fs = require("fs");
 
 
-const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/test";
+const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/dev";
 
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   	.then(result => {
@@ -956,12 +956,12 @@ app.post("/server/addcategories", authUser, authRole(["admin"]), (req, res) => {
       	if (err) console.log("ERROR", err);
       	else {
 			categoriesList = req.body.categories;
-			var categories = [];
+			let originalCategoriesList = doc.categories;
 			categoriesList.forEach(element => {
-				categories.push(element.category.split(" ").join("_"));
+				originalCategoriesList.push(element.category.split(" ").join("_"));
 			});
 			// console.log('categories: ', categories);
-			await Skill.updateOne({skill: req.body.skill},{$set:{categories:categories}} )
+			await Skill.updateOne({skill: req.body.skill},{$set:{categories:originalCategoriesList}} )
     	}
 		var redir = { message:"Success"};
         return res.json(redir);
