@@ -467,7 +467,7 @@ app.post('/server/editsubcategory/:skill/:category/:subcategory', authUser, (req
 			console.log("ERROR", err);
 		}else{
 			informationList.forEach(async (info) => {
-				await Information.updateOne({_id: info._id},{$set:{sub_category:req.body.newSubCategory}} );
+				await Information.updateOne({_id: info._id},{$set:{sub_category:req.body.newSubCategory.split(" ").join("_")}} );
 			});
 		}
 	});
@@ -477,7 +477,7 @@ app.post('/server/editsubcategory/:skill/:category/:subcategory', authUser, (req
 			console.log("ERROR", err);
 		}else{
 			questionsList.forEach(async (question) => {
-				await Question.updateOne({_id: question._id},{$set:{sub_category:req.body.newSubCategory}} );
+				await Question.updateOne({_id: question._id},{$set:{sub_category:req.body.newSubCategory.split(" ").join("_")}} );
 			});
 		}
 	});
@@ -492,7 +492,7 @@ app.post('/server/editsubcategory/:skill/:category/:subcategory', authUser, (req
 				// console.log('info before', skillData.information);
 				var updatedInformationList = (skillData.information).map(info => {
 					if (info.sub_category == subcategory) {
-						info.sub_category = req.body.newSubCategory;
+						info.sub_category = req.body.newSubCategory.split(" ").join("_");
 					}
 					return info;
 				});
@@ -503,7 +503,7 @@ app.post('/server/editsubcategory/:skill/:category/:subcategory', authUser, (req
 			if(skillData.questions !== undefined){
 				var updatedQuestionList = (skillData.questions).map(quest => {
 					if (quest.sub_category == subcategory) {
-						quest.sub_category = req.body.newSubCategory;
+						quest.sub_category = req.body.newSubCategory.split(" ").join("_");
 					}
 					return quest;
 				});
@@ -513,7 +513,7 @@ app.post('/server/editsubcategory/:skill/:category/:subcategory', authUser, (req
 			if(skillData.sub_categories !== undefined){
 				var updatedSubCategoryList = (skillData.sub_categories).map(subCategory => {
 					if (subCategory.sub_category == subcategory) {
-						subCategory.sub_category = req.body.newSubCategory;
+						subCategory.sub_category = req.body.newSubCategory.split(" ").join("_");
 					}
 					return subCategory;
 				});
@@ -532,7 +532,7 @@ app.post('/server/editsubcategory/:skill/:category/:subcategory', authUser, (req
 				var scoreList = user.score;
 				scoreList.forEach(score => {
 					if(score.sub_category == subcategory){
-						score.sub_category = req.body.newSubCategory;
+						score.sub_category = req.body.newSubCategory.split(" ").join("_");
 					}
 					return score;
 				});
@@ -556,7 +556,7 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
 			console.log("ERROR", err);
 		}else{
 			informationList.forEach(async (info) => {
-				await Information.updateOne({_id: info._id},{$set:{category:req.body.newCategory}} );
+				await Information.updateOne({_id: info._id},{$set:{category:req.body.newCategory.split(" ").join("_")}} );
 			});
 		}
 	});
@@ -566,7 +566,7 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
 			console.log("ERROR", err);
 		}else{
 			questionsList.forEach(async (question) => {
-				await Question.updateOne({_id: question._id},{$set:{category:req.body.newCategory}} );
+				await Question.updateOne({_id: question._id},{$set:{category:req.body.newCategory.split(" ").join("_")}} );
 			});
 		}
 	});
@@ -581,7 +581,7 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
 				// console.log('info before', skillData.information);
 				var updatedInformationList = (skillData.information).map(info => {
 					if (info.category == category) {
-						info.category = req.body.newCategory;
+						info.category = req.body.newCategory.split(" ").join("_");
 					}
 					return info;
 				});
@@ -592,7 +592,7 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
 			if(skillData.questions !== undefined){
 				var updatedQuestionList = (skillData.questions).map(quest => {
 					if (quest.category == category) {
-						quest.category = req.body.newCategory;
+						quest.category = req.body.newCategory.split(" ").join("_");
 					}
 					return quest;
 				});
@@ -602,7 +602,7 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
 			if(skillData.categories !== undefined){
 				var updatedCategoryList = (skillData.categories).map(categoryElement => {
 					if (categoryElement == category) {
-						categoryElement = req.body.newCategory;
+						categoryElement = req.body.newCategory.split(" ").join("_");
 					}
 					return categoryElement;
 				});
@@ -612,7 +612,7 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
 			if(skillData.sub_categories !== undefined){
 				var updatedSubCategoryList = (skillData.sub_categories).map(subCategory => {
 					if (subCategory.category == category) {
-						subCategory.category = req.body.newCategory;
+						subCategory.category = req.body.newCategory.split(" ").join("_");
 					}
 					return subCategory;
 				});
@@ -629,7 +629,7 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
 				var scoreList = user.score;
 				scoreList.forEach(score => {
 					if(score.category == category){
-						score.category = req.body.newCategory;
+						score.category = req.body.newCategory.split(" ").join("_");
 					}
 					return score;
 				});
@@ -642,6 +642,53 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
     return res.json(redir);
 });
 
+app.post('/server/editcategoryordering/:skill', authUser, (req, res) => {	
+	var skill = req.params.skill;
+	Skill.find({skill:skill}).exec(async function(err, skillData) {
+		skillData = skillData[0];
+		// console.log('edit skilldata', skillData);
+		if(err){
+			console.log("ERROR", err);
+		}else{
+			await Skill.updateOne({_id: skillData._id},{$set:{categories:req.body.categories }} );
+		}
+	});
+	var redir = { message:"Success"};
+    return res.json(redir);
+});
+
+app.post('/server/editsubcategoryordering/:skill/:category', authUser, (req, res) => {	
+	console.log('req.body.sub_categories', req.body.sub_categories);
+	var skill = req.params.skill;
+	var category = req.params.category;
+	Skill.find({skill:skill}).exec(async function(err, skillData) {
+		skillData = skillData[0];
+		// console.log('edit skilldata', skillData);
+		if(err){
+			console.log("ERROR", err);
+		}else{
+
+			var updatedSubCategories = skillData.sub_categories;
+
+			console.log('ordered sub categories before', updatedSubCategories);
+			var ind=0;
+			
+			for (var i=0; i<(updatedSubCategories).length; i++){
+				if(updatedSubCategories[i].category === category){
+					updatedSubCategories[i] = req.body.sub_categories[ind++];
+				}
+			}
+
+			console.log('ordered sub categories after', updatedSubCategories);
+
+			await Skill.updateOne({_id: skillData._id},{$set:{sub_categories:updatedSubCategories }} );
+		}
+	});
+	var redir = { message:"Success"};
+    return res.json(redir);
+});
+
+
 app.post('/server/editskill/:skill', authUser, (req, res) => {	
 	var skill = req.params.skill;
 	// console.log('edited skill', req.body);
@@ -651,7 +698,7 @@ app.post('/server/editskill/:skill', authUser, (req, res) => {
 			console.log("ERROR", err);
 		}else{
 			informationList.forEach(async (info) => {
-				await Information.updateOne({_id: info._id},{$set:{skill:req.body.newSkill}});
+				await Information.updateOne({_id: info._id},{$set:{skill:req.body.newSkill.split(" ").join("_")}});
 			});
 		}
 	});
@@ -661,7 +708,7 @@ app.post('/server/editskill/:skill', authUser, (req, res) => {
 			console.log("ERROR", err);
 		}else{
 			questionsList.forEach(async (question) => {
-				await Question.updateOne({_id: question._id},{$set:{skill:req.body.newSkill}});
+				await Question.updateOne({_id: question._id},{$set:{skill:req.body.newSkill.split(" ").join("_")}});
 			});
 		}
 	});
@@ -672,7 +719,7 @@ app.post('/server/editskill/:skill', authUser, (req, res) => {
 		if(err){
 			console.log("ERROR", err);
 		}else{
-			await Skill.updateOne({_id: skillData._id},{$set:{skill:req.body.newSkill }} );
+			await Skill.updateOne({_id: skillData._id},{$set:{skill:req.body.newSkill.split(" ").join("_") }} );
 		}
 	});
 
@@ -684,7 +731,7 @@ app.post('/server/editskill/:skill', authUser, (req, res) => {
 				var scoreList = user.score;
 				scoreList.forEach(score => {
 					if(score.skill == skill){
-						score.skill = req.body.newSkill;
+						score.skill = req.body.newSkill.split(" ").join("_");
 					}
 					return score;
 				});
