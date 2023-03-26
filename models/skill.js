@@ -39,6 +39,9 @@ const skill = new mongoose.Schema({
             type: String,
         }
     }],
+    order: {
+        type: Number,
+    }
 });
 
 module.exports = mongoose.model("Skill", skill);

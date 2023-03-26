@@ -24,7 +24,7 @@ const multer = require("multer");
 const fs = require("fs");
 
 
-const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/dev";
+const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/test";
 
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   	.then(result => {
@@ -193,6 +193,9 @@ app.get('/server/skills', authUser,  (req, res) => {
 			console.log("ERROR", err);
 		}else{
 			// console.log("All skills", val);
+			val.sort((a, b) => {
+				return a.order - b.order;
+			});
 			return res.json({data: val});
 		}
 	})	
@@ -642,6 +645,18 @@ app.post('/server/editcategory/:skill/:category', authUser, (req, res) => {
     return res.json(redir);
 });
 
+app.post('/server/editskillordering/:skill', authUser, (req, res) => {
+	Skill.find({skill:req.body.skill}).exec(async function(err, skillData) {
+		skillData = skillData[0];
+		// console.log('edit skilldata', skillData);
+		if(err){
+			console.log("ERROR", err);
+		}else{
+			await Skill.updateOne({_id: skillData._id},{$set:{order:req.body.order}} );
+		}
+	});
+});
+
 app.post('/server/editcategoryordering/:skill', authUser, (req, res) => {	
 	var skill = req.params.skill;
 	Skill.find({skill:skill}).exec(async function(err, skillData) {
@@ -1021,6 +1036,7 @@ app.post("/server/addskill", authUser, authRole(["admin"]), (req, res) => {
 		if (!doc) {
 			const newSkill = new Skill({ 
 				skill: req.body.skill.split(" ").join("_"),
+				order: req.body.order,
 			});
 			await newSkill.save();
 		}
