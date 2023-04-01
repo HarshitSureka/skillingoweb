@@ -887,35 +887,49 @@ app.get('/server/categories/:skillName', authUser, (req, res) => {
 		}
 	 });
 });
-
-app.post("/server/addquestions", authUser, authRole(["admin"]), (req, res) => {
+app.post("/server/addquestions", authUser, authRole(["admin"]), upload.single("photo"), async(req, res) => {
     ////checking if another user with same username already exists
-	// console.log('quest req.body', req.body);
-    Question.findOne({ question: req.body.question, skill: req.body.corresponding_skill,
+	var filename = "";
+	if(req.file != undefined)	filename = req.file.filename;
+	console.log('quest req.body', req.body);
+    
+	Question.findOne({ question: req.body.question, skill: req.body.corresponding_skill,
 		category: req.body.corresponding_category,
 		sub_category: req.body.corresponding_sub_category }, async (err, doc) => {
       	if (err) throw err;
       	if (!doc) {
 			optionsList = req.body.options;
-			var options = [];
-			optionsList.forEach(element => {
-				options.push(element.option);
-			});
+			var options = optionsList.split(',');
 
 			Skill.findOne({skill: req.body.corresponding_skill}, async(err, val) => {
 				if(err){
 					console.log("ERROR", err);
 				}else{
 					let skill_data = val;
-					const newQuestion = new Question({
-						question: req.body.question,
-						options: options,
-						correct_answers: req.body.correct_answers,
-						explaination: req.body.explaination,
-						skill: req.body.corresponding_skill,
-						category: req.body.corresponding_category,
-						sub_category: req.body.corresponding_sub_category
-					});
+					var newQuestion;
+					if(filename != ""){
+						newQuestion = new Question({
+							question: req.body.question,
+							options: options,
+							correct_answers: req.body.correct_answers,
+							explaination: req.body.explaination,
+							skill: req.body.corresponding_skill,
+							category: req.body.corresponding_category,
+							sub_category: req.body.corresponding_sub_category,
+							imgpath:filename,
+						});
+					}
+					else{
+						newQuestion = new Question({
+							question: req.body.question,
+							options: options,
+							correct_answers: req.body.correct_answers,
+							explaination: req.body.explaination,
+							skill: req.body.corresponding_skill,
+							category: req.body.corresponding_category,
+							sub_category: req.body.corresponding_sub_category
+						});
+					}
 		        	await newQuestion.save();
 					Skill.findOne({skill: req.body.corresponding_skill}, async(err, val) => {
 						if(err){
@@ -941,7 +955,7 @@ app.post("/server/addinformation", authUser, authRole(["admin"]), upload.single(
 
 	var filename = "";
 	if(req.file != undefined)	filename = req.file.filename;
-	// console.log('info req.body', req.body);
+	console.log('info req.body', req.body);
 	
     Information.findOne({ information: req.body.information, skill: req.body.corresponding_skill,
 		category: req.body.corresponding_category,
@@ -1055,7 +1069,7 @@ app.post("/server/savescore", authUser, (req, res) => {
 			let allScoresList = doc.score;
 			// console.log('req.body from Quiz', req.body);
 			allScoresList.push({skill: req.body.skill, category: req.body.category, sub_category: req.body.sub_category,points: req.body.points});
-			let updatedDoc = await User.updateOne({ username: req.user.username },{$set:{score: allScoresList}});
+			let updatedDoc = await User.updateOne({ username: req.user.username },{$set:{score: allScoresList, last_played : {skill: req.body.skill, category: req.body.category, sub_category: req.body.sub_category}}});
 			// console.log('updated', updatedDoc);
 		}
 		// console.log('scored user = ', req.user);

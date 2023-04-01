@@ -18,7 +18,18 @@ const user = new mongoose.Schema({
         points: {
             type: Number,
         }
-    }]
+    }],
+    last_played: {
+        skill: {
+            type: String,
+        },
+        category: {
+            type: String,
+        },
+        sub_category: {
+            type: String,
+        } 
+    }
 });
 
 module.exports = mongoose.model("User", user);

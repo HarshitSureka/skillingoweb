@@ -29,6 +29,7 @@ module.exports = function (passport) {
       		const userInformation = {
         		username: user.username,
 				score: user.score,
+				last_played: user.last_played,
 				role: user.role
       		};
       		cb(err, userInformation);
