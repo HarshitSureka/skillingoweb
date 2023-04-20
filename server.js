@@ -21,10 +21,31 @@ const Information = require("./models/information");
 const flash = require("express-flash");  
 const {authUser, authRole} = require('./middleware')
 const multer = require("multer");
+const aws = require("aws-sdk");
+const multerS3 = require("multer-s3");
 const fs = require("fs");
 
+aws.config.update({
+	secretAccessKey: process.env.ACCESS_SECRET_KEY,
+	accessKeyId: process.env.ACCESS_KEY,
+	region: process.env.REGION
+});
 
-const dbURI ="mongodb+srv://hsureka:EM7oHtZg72LQ8vgd@cluster0.wjqn6ca.mongodb.net/dev";
+const BUCKET = process.env.BUCKET
+const s3 = new aws.S3();
+
+const upload = multer({
+	storage: multerS3({
+		bucket:BUCKET,
+		s3:s3,
+		acl : 'public-read',
+		key: (req, file, cb)=>{
+			cb(null, `image-${Date.now()}. ${file.originalname}`);
+		}
+	})
+})
+
+const dbURI = process.env.DB;
 
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   	.then(result => {
@@ -62,7 +83,8 @@ const imgconfig = multer.diskStorage({
         callback(null,"./uploads")
     },
     filename:(req,file,callback)=>{
-        callback(null,`image-${Date.now()}. ${file.originalname}`)
+		console.log('fileName', `image-${Date.now()}. ${file.originalname}`);
+        callback(null,`image-${Date.now()}${file.originalname}`)
     }
 })
 
@@ -74,25 +96,6 @@ const isImage = (req,file,callback)=>{
     }else{
         callback(new Error("only images is allowd"))
     }
-}
-
-const upload = multer({
-    storage:imgconfig,
-    fileFilter:isImage
-});
-
-const deleteFile = (fileName) =>{
-	if(fileName == "")	return;
-	var directoryPath = __dirname ;
-	directoryPath = directoryPath.replace('\\', '/')
-	directoryPath+= "/uploads/" + fileName;
-	
-	fs.unlink(directoryPath, (err) => {
-		if (err) {
-			console.log(err);
-		}
-		console.log('File deleted!');   
-	});
 }
 
 app.post("/server/login",  (req, res, next) => { // req is request, res is response	
@@ -234,7 +237,14 @@ app.get('/server/information/:skillName/:category/:subcategory/:page', authUser,
 			console.log("ERROR", err);
 		}else{
 			// console.log("info for", information[0]);
-			return res.json({data: information[0]});
+			if(information[0].imgpath != undefined){
+				var promise = s3.getSignedUrlPromise('getObject', {Bucket: BUCKET, Key: information[0].imgpath});
+				promise.then(function(url){
+					return res.json({url:url ,data: information[0]});
+				}, function(err){console.log(err)});
+			}
+			else
+				return res.json({data: information[0]});
 		}
 	 });
 });
@@ -259,7 +269,15 @@ app.get('/server/question/:id', authUser, (req, res) => {
 		if(err){
 			console.log("ERROR", err);
 		}else{
-			return res.json({data: question});
+
+			if(question.imgpath != undefined){
+				var promise = s3.getSignedUrlPromise('getObject', {Bucket: BUCKET, Key: question.imgpath});
+				promise.then(function(url){
+					return res.json({url:url ,data: question});
+				}, function(err){console.log(err)});
+			}
+			else
+				return res.json({data: question});
 		}
 	 });
 });
@@ -271,41 +289,81 @@ app.get('/server/informationById/:id', authUser, (req, res) => {
 			console.log("ERROR", err);
 		}else{
 			// console.log("INFO", information);
-			return res.json({data: information});
+			if(information.imgpath != undefined){
+				var promise = s3.getSignedUrlPromise('getObject', {Bucket: BUCKET, Key: information.imgpath});
+				promise.then(function(url){
+					return res.json({url:url ,data: information});
+				}, function(err){console.log(err)});
+			}
+			else
+				return res.json({data: information});
 		}
 	 });
 });
 
-app.post('/server/editquestion/:id', authUser, (req, res) => {	
+app.post('/server/editquestion/:id', authUser, authRole(["admin"]), upload.single("photo"), (req, res) => {	
 	var id = req.params.id;
+
+	var filename = "";
+	if(req.file != undefined){	
+		filename = req.file.key;
+		console.log('file', req.file);
+	}
+
 	// console.log('edited question', req.body);
 	Question.findById(id, async function(err, question) {
 		if(err){
 			console.log("ERROR", err);
 		}else{
 			optionsList = req.body.options;
-			var options = [];
-			optionsList.forEach(element => {
-				options.push(element.option);
-			});
-			await Question.updateOne({_id: id},{$set:{question: req.body.question,
-				options: options,
-				correct_answers: req.body.correct_answers,
-				explaination: req.body.explaination}} )
+			var options = optionsList.split(',');
+
+			if(filename!= ''){
+				const oldFilename = question.imgpath;
+				console.log('old filename', oldFilename);
+				if(oldFilename != '' && oldFilename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: oldFilename}).promise();
+				await Question.updateOne({_id: id},{$set:{question: req.body.question,
+					options: options,
+					correct_answers: req.body.correct_answers,
+					explaination: req.body.explaination,
+					imgpath: filename}} );
+			}
+			else{
+				await Question.updateOne({_id: id},{$set:{question: req.body.question,
+					options: options,
+					correct_answers: req.body.correct_answers,
+					explaination: req.body.explaination}} )
+			}
 		}
 	 });
 	var redir = { message:"Success"};
     return res.json(redir);
 });
 
-app.post('/server/editinformation/:id', authUser, (req, res) => {	
+app.post('/server/editinformation/:id', authUser, authRole(["admin"]), upload.single("photo"), (req, res) => {	
 	var id = req.params.id;
-	Information.findById(id, async function(err, question) {
+	
+	var filename = "";
+	if(req.file != undefined){	
+		filename = req.file.key;
+		console.log('file', req.file);
+	}
+
+	Information.findById(id, async function(err, information) {
 		if(err){
 			console.log("ERROR", err);
 		}else{
-			await Information.updateOne({_id: id},{$set:{heading: req.body.heading,
-				information: req.body.information}} )
+			if(filename != ""){
+				const oldFilename = information.imgpath;
+
+				if(oldFilename != '' && oldFilename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: oldFilename}).promise();
+				await Information.updateOne({_id: id},{$set:{heading: req.body.heading,
+					information: req.body.information, imgpath: filename}} );
+			}
+			else{
+				await Information.updateOne({_id: id},{$set:{heading: req.body.heading,
+					information: req.body.information}} )
+			}
 		}
 	 });
 	var redir = { message:"Success"};
@@ -845,6 +903,13 @@ app.post('/server/deleteinformation/:id', authUser, async(req, res) => {
     return res.json(redir);
 });
 
+app.get('/server/getImage/:key', (req,res) =>{
+	var key = req.params.key;
+	var promise = s3.getSignedUrlPromise('getObject', {Bucket: BUCKET, Key: key});
+	promise.then(function(url){
+		return res.json({url:url});
+	}, function(err){console.log(err)});
+});
 
 app.get('/server/questions/:skillName/:category/:subcategory', authUser, (req, res) => {	
 	var skillName = req.params.skillName;
@@ -890,7 +955,10 @@ app.get('/server/categories/:skillName', authUser, (req, res) => {
 app.post("/server/addquestions", authUser, authRole(["admin"]), upload.single("photo"), async(req, res) => {
     ////checking if another user with same username already exists
 	var filename = "";
-	if(req.file != undefined)	filename = req.file.filename;
+	if(req.file != undefined)	{
+		filename = req.file.key;
+		console.log("filename", filename);
+	}
 	console.log('quest req.body', req.body);
     
 	Question.findOne({ question: req.body.question, skill: req.body.corresponding_skill,
@@ -900,6 +968,7 @@ app.post("/server/addquestions", authUser, authRole(["admin"]), upload.single("p
       	if (!doc) {
 			optionsList = req.body.options;
 			var options = optionsList.split(',');
+			console.log('options:', options);
 
 			Skill.findOne({skill: req.body.corresponding_skill}, async(err, val) => {
 				if(err){
@@ -954,7 +1023,10 @@ app.post("/server/addinformation", authUser, authRole(["admin"]), upload.single(
 	// console.log('info req', req);
 
 	var filename = "";
-	if(req.file != undefined)	filename = req.file.filename;
+	if(req.file != undefined){	
+		filename = req.file.key;
+		console.log('file', req.file);
+	}
 	console.log('info req.body', req.body);
 	
     Information.findOne({ information: req.body.information, skill: req.body.corresponding_skill,
@@ -966,7 +1038,6 @@ app.post("/server/addinformation", authUser, authRole(["admin"]), upload.single(
 				if(err){
 					console.log("ERROR", err);
 				}else{
-					let skill_data = val;
 					var newInformation;
 					if(filename != ""){
 						newInformation = new Information({
