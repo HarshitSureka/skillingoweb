@@ -77,18 +77,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 require("./passportConfig")(passport);
 
-// img storage path
-const imgconfig = multer.diskStorage({
-    destination:(req,file,callback)=>{
-        callback(null,"./uploads")
-    },
-    filename:(req,file,callback)=>{
-		console.log('fileName', `image-${Date.now()}. ${file.originalname}`);
-        callback(null,`image-${Date.now()}${file.originalname}`)
-    }
-})
-
-
 // img filter
 const isImage = (req,file,callback)=>{
     if(file.mimetype.startsWith("image")){
@@ -307,7 +295,7 @@ app.post('/server/editquestion/:id', authUser, authRole(["admin"]), upload.singl
 	var filename = "";
 	if(req.file != undefined){	
 		filename = req.file.key;
-		console.log('file', req.file);
+		// console.log('file', req.file);
 	}
 
 	// console.log('edited question', req.body);
@@ -320,7 +308,7 @@ app.post('/server/editquestion/:id', authUser, authRole(["admin"]), upload.singl
 
 			if(filename!= ''){
 				const oldFilename = question.imgpath;
-				console.log('old filename', oldFilename);
+				// console.log('old filename', oldFilename);
 				if(oldFilename != '' && oldFilename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: oldFilename}).promise();
 				await Question.updateOne({_id: id},{$set:{question: req.body.question,
 					options: options,
@@ -346,7 +334,7 @@ app.post('/server/editinformation/:id', authUser, authRole(["admin"]), upload.si
 	var filename = "";
 	if(req.file != undefined){	
 		filename = req.file.key;
-		console.log('file', req.file);
+		// console.log('file', req.file);
 	}
 
 	Information.findById(id, async function(err, information) {
@@ -382,7 +370,8 @@ app.post('/server/deletesubcategory/:skill/:category/:subcategory', authUser, (r
 			// console.log('info before del', informationList);
 			informationList.forEach(async (info) => {
 				await Information.deleteOne({_id: info._id});
-				deleteFile(info.imgpath);
+				const filename = info.imgpath;
+				if(filename != '' && filename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: filename}).promise();				
 			});
 		}
 	});
@@ -393,7 +382,8 @@ app.post('/server/deletesubcategory/:skill/:category/:subcategory', authUser, (r
 		}else{
 			questionsList.forEach(async (question) => {
 				await Question.deleteOne({_id: question._id});
-				
+				const filename = question.imgpath;
+				if(filename != '' && filename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: filename}).promise();
 			});
 		}
 	});
@@ -456,7 +446,8 @@ app.post('/server/deletecategory/:skill/:category', authUser, (req, res) => {
 		}else{
 			informationList.forEach(async (info) => {
 				await Information.deleteOne({_id: info._id});
-				deleteFile(info.imgpath);
+				const filename = info.imgpath;
+				if(filename != '' && filename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: filename}).promise();
 			});
 		}
 	});
@@ -467,6 +458,8 @@ app.post('/server/deletecategory/:skill/:category', authUser, (req, res) => {
 		}else{
 			questionsList.forEach(async (question) => {
 				await Question.deleteOne({_id: question._id});
+				const filename = question.imgpath;
+				if(filename != '' && filename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: filename}).promise();
 			});
 		}
 	});
@@ -731,7 +724,7 @@ app.post('/server/editcategoryordering/:skill', authUser, (req, res) => {
 });
 
 app.post('/server/editsubcategoryordering/:skill/:category', authUser, (req, res) => {	
-	console.log('req.body.sub_categories', req.body.sub_categories);
+	// console.log('req.body.sub_categories', req.body.sub_categories);
 	var skill = req.params.skill;
 	var category = req.params.category;
 	Skill.find({skill:skill}).exec(async function(err, skillData) {
@@ -743,7 +736,7 @@ app.post('/server/editsubcategoryordering/:skill/:category', authUser, (req, res
 
 			var updatedSubCategories = skillData.sub_categories;
 
-			console.log('ordered sub categories before', updatedSubCategories);
+			// console.log('ordered sub categories before', updatedSubCategories);
 			var ind=0;
 			
 			for (var i=0; i<(updatedSubCategories).length; i++){
@@ -752,7 +745,7 @@ app.post('/server/editsubcategoryordering/:skill/:category', authUser, (req, res
 				}
 			}
 
-			console.log('ordered sub categories after', updatedSubCategories);
+			// console.log('ordered sub categories after', updatedSubCategories);
 
 			await Skill.updateOne({_id: skillData._id},{$set:{sub_categories:updatedSubCategories }} );
 		}
@@ -826,7 +819,8 @@ app.post('/server/deleteskill/:skill', authUser, async (req, res) => {
 		}else{
 			informationList.forEach(async (info) => {
 				await Information.deleteOne({_id: info._id});
-				deleteFile(info.imgpath);
+				const filename = info.imgpath;
+				if(filename != '' && filename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: filename}).promise();
 			});
 		}
 	});
@@ -837,6 +831,8 @@ app.post('/server/deleteskill/:skill', authUser, async (req, res) => {
 		}else{
 			questionsList.forEach(async (question) => {
 				await Question.deleteOne({_id: question._id});
+				const filename = question.imgpath;
+				if(filename != '' && filename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: filename}).promise();
 			});
 		}
 	});
@@ -864,7 +860,12 @@ app.post('/server/deleteskill/:skill', authUser, async (req, res) => {
 app.post('/server/deletequestion/:id', authUser, async(req, res) => {	
 	// console.log('yay delete questi');
 	var id = req.params.id;
+	const question = await Question.find({_id:id});
 	await Question.deleteOne({_id:id});
+	
+	const filename = question[0].imgpath;
+	if(filename != '' && filename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: filename}).promise();
+
 	Skill.findOne({skill: req.body.skill}, async(err, val) => {
 		if(err){
 			console.log("ERROR", err);
@@ -884,10 +885,20 @@ app.post('/server/deleteinformation/:id', authUser, async(req, res) => {
 	// console.log('yay delete info');
 	var id = req.params.id;
 	const info = await Information.find({_id:id});
+	// console.log('deleted info is', info);
+
+	const filename = info[0].imgpath;
+	// console.log('filename', filename);
+	if(filename != '' && filename !== undefined){
+		await s3.deleteObject({Bucket: BUCKET, Key: filename}).promise();
+		// console.log('delete hoja');
+	}
+
 	await Information.deleteOne({_id:id});
 	// console.log('info d',info);
 	// console.log("infoimgpath",info[0].imgpath);
-	deleteFile(info[0].imgpath);
+	
+
 	Skill.findOne({skill: req.body.skill}, async(err, val) => {
 		if(err){
 			console.log("ERROR", err);
@@ -957,9 +968,9 @@ app.post("/server/addquestions", authUser, authRole(["admin"]), upload.single("p
 	var filename = "";
 	if(req.file != undefined)	{
 		filename = req.file.key;
-		console.log("filename", filename);
+		// console.log("filename", filename);
 	}
-	console.log('quest req.body', req.body);
+	// console.log('quest req.body', req.body);
     
 	Question.findOne({ question: req.body.question, skill: req.body.corresponding_skill,
 		category: req.body.corresponding_category,
@@ -968,7 +979,7 @@ app.post("/server/addquestions", authUser, authRole(["admin"]), upload.single("p
       	if (!doc) {
 			optionsList = req.body.options;
 			var options = optionsList.split(',');
-			console.log('options:', options);
+			// console.log('options:', options);
 
 			Skill.findOne({skill: req.body.corresponding_skill}, async(err, val) => {
 				if(err){
@@ -1025,9 +1036,9 @@ app.post("/server/addinformation", authUser, authRole(["admin"]), upload.single(
 	var filename = "";
 	if(req.file != undefined){	
 		filename = req.file.key;
-		console.log('file', req.file);
+		// console.log('file', req.file);
 	}
-	console.log('info req.body', req.body);
+	// console.log('info req.body', req.body);
 	
     Information.findOne({ information: req.body.information, skill: req.body.corresponding_skill,
 		category: req.body.corresponding_category,
