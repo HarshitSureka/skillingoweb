@@ -209,7 +209,7 @@ app.post('/server/forgotpasswordform', (req, res) => {
 			const token = base64url(crypto.randomBytes(20));
 			await User.updateOne({ username: req.body.username},{$set:{password_reset_token: token}} );
 
-			const link = `http://localhost:5000/forgotpassword/${doc.username}/${token}`;
+			const link = `${req.body.link}/forgotpassword/${doc.username}/${token}`;
 			let details ={
 				from: process.env.MAIL,
 				to: doc.email,
