@@ -24,6 +24,9 @@ const multer = require("multer");
 const aws = require("aws-sdk");
 const multerS3 = require("multer-s3");
 const fs = require("fs");
+const nodemailer = require("nodemailer");
+const crypto = require('crypto');
+const base64url = require('base64url');
 
 aws.config.update({
 	secretAccessKey: process.env.ACCESS_SECRET_KEY,
@@ -108,6 +111,11 @@ app.post("/server/login",  (req, res, next) => { // req is request, res is respo
 ////we check if user is already logged in or not  	
 app.get('/server/login',  (req, res) => {	
     if (req.isAuthenticated()) {	
+		// console.log('user is', req.user);
+		if(req.user.email === undefined || req.user.email === ''){
+			var redir = { redirect: "/updateemail", message: 'It is mandatory to update your email.' };
+			return res.json(redir);	
+		}
         var redir = { redirect: "/home" , message:'Already Logged In', user:req.user};	
         return res.json(redir);	
     }	
@@ -132,15 +140,26 @@ app.post("/server/register",  (req, res) => {
           		var redir = {  redirect: "/register", message:"Username cannot be empty"};
           		return res.json(redir);  
         	}
+			if(req.body.email.length==0){
+				var redir = {  redirect: "/register", message:"Email cannot be empty"};
+				return res.json(redir);  
+		  	}
         	if(req.body.password.length==0){
           		var redir = {  redirect: "/register", message:"Password cannot be empty"};
           		return res.json(redir);  
         	}
 
+			var emailRegex = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
+   			if(!emailRegex.test(req.body.email)){
+				var redir = {  redirect: "/register", message:"Enter a valid email address"};
+				return res.json(redir);  
+		  	}
+
         	////encryption of password using bcrypt
         	const hashedPassword = await bcrypt.hash(req.body.password, 10);
         	const newUser = new User({
           		username: req.body.username,
+				email: req.body.email,
           		password: hashedPassword,
 				role: "basic"
         	});
@@ -149,6 +168,99 @@ app.post("/server/register",  (req, res) => {
         	return res.json(redir);
     	}
     });
+});
+
+app.post("/server/updateemail", authUser, async(req, res) => {
+    User.findOne({ username: req.user.username }, async (err, doc) => {
+      	if (err) {
+			console.log("ERROR", err);
+		}else{
+			await User.updateOne({ username: req.user.username },{$set:{email: req.body.email}});
+		}
+		// console.log('scored user = ', req.user);
+		var redir = { redirect: "/home", message:"Success"};
+        return res.json(redir);
+    });
+});
+
+let mailTransporter = nodemailer.createTransport({
+	service: "gmail",
+	auth: {
+		user: process.env.MAIL,
+		pass: process.env.PASSWORD_MAIL
+	}
+})
+
+
+app.post('/server/forgotpasswordform', (req, res) => {
+	// console.log('fp',req.body);
+	if(req.body.username === undefined || req.body.username.length==0){
+		var redir = {  message:"Username cannot be empty"};
+        return res.json(redir);  
+	}
+
+	User.findOne({ username: req.body.username}, async(err, doc) =>{
+		if (err) throw err;
+		if(!doc){
+			var redir = { message:"No such user exists"};
+        	return res.json(redir);
+		}
+		else{
+			const token = base64url(crypto.randomBytes(20));
+			await User.updateOne({ username: req.body.username},{$set:{password_reset_token: token}} );
+
+			const link = `http://localhost:5000/forgotpassword/${doc.username}/${token}`;
+			let details ={
+				from: process.env.MAIL,
+				to: doc.email,
+				subject: "Forgot Password Link",
+				text: "Click on this link to reset you password: " + link,
+			}
+
+			mailTransporter.sendMail(details, (err, info) => {
+				if(err) console.log('err');
+				else	{
+					// console.log('email sent', info);
+					var redir = { redirect: "/forgotpasswordmailsent"};
+        			return res.json(redir);
+				}
+			});
+		}
+	});
+});
+
+app.post('/server/forgotpassword', (req, res) => {
+	if(req.body.username === undefined || req.body.username.length==0){
+		var redir = {  message:"Invalid link"};
+        return res.json(redir);  
+	}
+
+	if(req.body.token === undefined || req.body.token.length==0){
+		var redir = {  message:"Invalid link"};
+        return res.json(redir);  
+	}
+
+	User.findOne({ username: req.body.username}, async (err, doc) => {
+		if (err) console.log(err);
+		if(!doc){
+			var redir = {  redirect: "/register", message:"No such user exists"};
+        	return res.json(redir);
+		}
+		else{
+			
+			if(req.body.token != doc.password_reset_token){
+				var redir = { message:'Invalid link' };	
+        		return res.json(redir);	
+			}
+
+			const hashedPassword = await bcrypt.hash(req.body.password, 10);
+			
+			await User.updateOne({ username: req.body.username},{$set:{password: hashedPassword, password_reset_token: ''}} );
+
+			var redir = { redirect: "/login", message:'Enter your credentials to Log In' };	
+        	return res.json(redir);	
+		}
+	});
 });
 
 ////Checking if user is already logged in or not	

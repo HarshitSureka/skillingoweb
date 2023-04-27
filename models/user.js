@@ -3,6 +3,7 @@
 const mongoose = require("mongoose");
 const user = new mongoose.Schema({
     username: String,
+    email: String,
     password: String,
     role: String,
     score:[{
@@ -29,7 +30,8 @@ const user = new mongoose.Schema({
         sub_category: {
             type: String,
         } 
-    }
+    }, 
+    password_reset_token: String
 });
 
 module.exports = mongoose.model("User", user);
