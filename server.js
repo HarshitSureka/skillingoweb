@@ -251,6 +251,29 @@ app.post('/server/forgotpasswordform', (req, res) => {
 	});
 });
 
+app.post('/server/contactus', (req, res) =>{
+	var maillist = [
+		process.env.CONTACT_EMAIL_1,
+		process.env.CONTACT_EMAIL_2,
+	];
+
+	let details ={
+		from: process.env.MAIL,
+		to: maillist,
+		subject: "Users need Help",
+		text: `Hi, I am ${req.body.name}, please contact me at this email - ${req.body.emailAddress}. My concern is ${req.body.emailMessage}`
+	}
+
+	mailTransporter.sendMail(details).then(() => {
+		// console.log('Email sent successfully');
+		var redir = { message: "mail sent"};
+		return res.json(redir);
+	}).catch((err) => {
+		console.log('Failed to send email');
+		console.error(err);
+	});
+})
+
 app.post('/server/forgotpassword', (req, res) => {
 	if(req.body.username === undefined || req.body.username.length==0){
 		var redir = {  message:"Invalid link"};
