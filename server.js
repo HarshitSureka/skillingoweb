@@ -126,6 +126,7 @@ app.get('/server/login',  (req, res) => {
 });
 
 app.post("/server/register",  (req, res) => {
+
     ////checking if another user with same username already exists
     User.findOne({ username: req.body.username }, async (err, doc) => {
       	if (err) throw err;
@@ -134,38 +135,50 @@ app.post("/server/register",  (req, res) => {
         	return res.json(redir);
     	} 
       	if (!doc) {
+
+			User.findOne({ email: req.body.email }, async (err, doc) => {
+				if (err) throw err;
+				if (doc){ 
+					var redir = {  redirect: "/register", message:"Email Already Registered"};
+					return res.json(redir);
+				}else{
+
+				
+
         	////username and password is required during creation of an account
 
-        	if(req.body.username.length==0){
-          		var redir = {  redirect: "/register", message:"Username cannot be empty"};
-          		return res.json(redir);  
-        	}
-			if(req.body.email.length==0){
-				var redir = {  redirect: "/register", message:"Email cannot be empty"};
-				return res.json(redir);  
-		  	}
-        	if(req.body.password.length==0){
-          		var redir = {  redirect: "/register", message:"Password cannot be empty"};
-          		return res.json(redir);  
-        	}
+				if(req.body.username.length==0){
+					var redir = {  redirect: "/register", message:"Username cannot be empty"};
+					return res.json(redir);  
+				}
+				if(req.body.email.length==0){
+					var redir = {  redirect: "/register", message:"Email cannot be empty"};
+					return res.json(redir);  
+				}
+				if(req.body.password.length==0){
+					var redir = {  redirect: "/register", message:"Password cannot be empty"};
+					return res.json(redir);  
+				}
 
-			var emailRegex = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
-   			if(!emailRegex.test(req.body.email)){
-				var redir = {  redirect: "/register", message:"Enter a valid email address"};
-				return res.json(redir);  
-		  	}
+				var emailRegex = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
+				if(!emailRegex.test(req.body.email)){
+					var redir = {  redirect: "/register", message:"Enter a valid email address"};
+					return res.json(redir);  
+				}
 
-        	////encryption of password using bcrypt
-        	const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        	const newUser = new User({
-          		username: req.body.username,
-				email: req.body.email,
-          		password: hashedPassword,
-				role: "basic"
-        	});
-        	await newUser.save();
-			var redir = { redirect: "/login", message:"User Created"};
-        	return res.json(redir);
+				////encryption of password using bcrypt
+				const hashedPassword = await bcrypt.hash(req.body.password, 10);
+				const newUser = new User({
+					username: req.body.username,
+					email: req.body.email,
+					password: hashedPassword,
+					role: "basic"
+				});
+				await newUser.save();
+				var redir = { redirect: "/login", message:"User Created"};
+				return res.json(redir);
+			} 
+		});
     	}
     });
 });
