@@ -196,13 +196,21 @@ app.post("/server/updateemail", authUser, async(req, res) => {
     });
 });
 
-let mailTransporter = nodemailer.createTransport({
-	service: "gmail",
-	auth: {
-		user: process.env.MAIL,
-		pass: process.env.PASSWORD_MAIL
-	}
-})
+const mailTransporter = nodemailer.createTransport({    
+    host: "smtpout.secureserver.net",  
+    secure: true,
+    secureConnection: false, // TLS requires secureConnection to be false
+    tls: {
+        ciphers:'SSLv3'
+    },
+    requireTLS:true,
+    port: 465,
+    debug: true,
+    auth: {
+        user: process.env.MAIL,
+        pass: process.env.PASSWORD_MAIL
+    }
+});
 
 
 app.post('/server/forgotpasswordform', (req, res) => {
@@ -223,6 +231,7 @@ app.post('/server/forgotpasswordform', (req, res) => {
 			await User.updateOne({ username: req.body.username},{$set:{password_reset_token: token}} );
 
 			const link = `${req.body.link}/forgotpassword/${doc.username}/${token}`;
+			
 			let details ={
 				from: process.env.MAIL,
 				to: doc.email,
@@ -230,13 +239,13 @@ app.post('/server/forgotpasswordform', (req, res) => {
 				text: "Click on this link to reset you password: " + link,
 			}
 
-			mailTransporter.sendMail(details, (err, info) => {
-				if(err) console.log('err');
-				else	{
-					// console.log('email sent', info);
-					var redir = { redirect: "/forgotpasswordmailsent"};
-        			return res.json(redir);
-				}
+			mailTransporter.sendMail(details).then(() => {
+				// console.log('Email sent successfully');
+				var redir = { redirect: "/forgotpasswordmailsent"};
+        		return res.json(redir);
+			}).catch((err) => {
+				console.log('Failed to send email');
+				console.error(err);
 			});
 		}
 	});
