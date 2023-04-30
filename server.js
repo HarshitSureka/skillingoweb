@@ -463,20 +463,22 @@ app.post('/server/editquestion/:id', authUser, authRole(["admin"]), upload.singl
 			optionsList = req.body.options;
 			var options = optionsList.split(',');
 
+			var temp_correct_answers = req.body.correct_answers.split(',');
+
 			if(filename!= ''){
 				const oldFilename = question.imgpath;
 				// console.log('old filename', oldFilename);
 				if(oldFilename != '' && oldFilename !== undefined)	await s3.deleteObject({Bucket: BUCKET, Key: oldFilename}).promise();
 				await Question.updateOne({_id: id},{$set:{question: req.body.question,
 					options: options,
-					correct_answers: req.body.correct_answers,
+					correct_answers: temp_correct_answers,
 					explaination: req.body.explaination,
 					imgpath: filename}} );
 			}
 			else{
 				await Question.updateOne({_id: id},{$set:{question: req.body.question,
 					options: options,
-					correct_answers: req.body.correct_answers,
+					correct_answers: temp_correct_answers,
 					explaination: req.body.explaination}} )
 			}
 		}
@@ -1136,8 +1138,9 @@ app.post("/server/addquestions", authUser, authRole(["admin"]), upload.single("p
       	if (!doc) {
 			optionsList = req.body.options;
 			var options = optionsList.split(',');
-			// console.log('options:', options);
 
+			var temp_correct_answers = req.body.correct_answers.split(',');
+			
 			Skill.findOne({skill: req.body.corresponding_skill}, async(err, val) => {
 				if(err){
 					console.log("ERROR", err);
@@ -1148,7 +1151,7 @@ app.post("/server/addquestions", authUser, authRole(["admin"]), upload.single("p
 						newQuestion = new Question({
 							question: req.body.question,
 							options: options,
-							correct_answers: req.body.correct_answers,
+							correct_answers: temp_correct_answers,
 							explaination: req.body.explaination,
 							skill: req.body.corresponding_skill,
 							category: req.body.corresponding_category,
@@ -1160,7 +1163,7 @@ app.post("/server/addquestions", authUser, authRole(["admin"]), upload.single("p
 						newQuestion = new Question({
 							question: req.body.question,
 							options: options,
-							correct_answers: req.body.correct_answers,
+							correct_answers: temp_correct_answers,
 							explaination: req.body.explaination,
 							skill: req.body.corresponding_skill,
 							category: req.body.corresponding_category,

@@ -8,7 +8,7 @@ const question = new mongoose.Schema({
         type: String,
     }],
     correct_answers: [{
-        type: Number,
+        type: String,
     }],
     explaination: {
         type: String,
