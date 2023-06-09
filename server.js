@@ -89,6 +89,27 @@ const isImage = (req,file,callback)=>{
     }
 }
 
+// auth with google
+app.get('/auth/login-google', (req, res, next) => {
+    req.session.google_oauth2_state = Math.random().toString(36).substring(2);
+    next();
+  },
+  passport.authenticate('google', { scope: ['profile', 'email'], prompt: "select_account", state: true, })
+);
+
+// callback route for google to redirect to
+app.get('/auth/login-google/callback', 
+  passport.authenticate('google', { failureRedirect: '/auth/login' }),
+  function(req, res) {
+    // // Successful authentication, redirect home.
+	
+	///// redir is the redirect information passed to front end react app.
+    var redir = { redirect: "/home" , message:"Login Successfully" , userName:req?.user?.username };
+	return res.redirect("/home");
+	// return res.json(redir);
+  }
+);
+
 app.post("/server/login",  (req, res, next) => { // req is request, res is response	
     passport.authenticate("local", (err, user, info) => {	
       	if (err) throw err;  	
@@ -99,6 +120,7 @@ app.post("/server/login",  (req, res, next) => { // req is request, res is respo
       	else {	
         	req.logIn(user, (err) => {	
           		if (err) throw err;	
+				console.log("user", req.user);
           		var redir = { redirect: "/home" , message:"Login Successfully" , userName:req.user.username };	
           		///// redir is the redirect information passed to front end react app.	
           		return res.json(redir);	
@@ -325,7 +347,7 @@ app.get("/server/user",authUser, (req, res) => {
     res.send(req.user); // The req.user stores the entire user that has been authenticated inside of it.
 });
 
-app.get('/server/logout',authUser,(req, res) => {	
+app.get('/server/logout',authUser,(req, res) => {
 	req.logout(function(err) {
 		if (err) { return next(err); }
 		console.log("LOGOUT_SUCCESS");
