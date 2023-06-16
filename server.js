@@ -539,10 +539,29 @@ app.post('/server/editinformation/:id', authUser, authRole(["admin"]), upload.si
     return res.json(redir);
 });
 
-app.post('/server/deletesubcategory/:skill/:category/:subcategory', authUser, (req, res) => {
+app.post('/server/deletesubcategory/:skill/:category/:subcategoryid', authUser, (req, res) => {
 	var skill = req.params.skill;
 	var category = req.params.category;
-	var subcategory = req.params.subcategory;
+	var subcategoryid = req.params.subcategoryid;
+	var subcategory;
+	Skill.find({ skill: skill}).exec(function(err, skillDoc){
+		if(err){
+			console.log("ERROR", err);
+		}else{
+			// console.log('skillDoc', skillDoc);
+			skillDoc[0].sub_categories.forEach(sub_category => {
+				// console.log('sub_category', sub_category);
+				// console.log(sub_category._id.toString() );
+				// console.log(sub_category._id );
+				// console.log(subcategoryid);
+				if(sub_category._id.toString() === (subcategoryid)){
+					// console.log('sub_category x', sub_category);
+					subcategory = sub_category.sub_category; 
+				}
+			})
+		}
+	});
+	// console.log(subcategoryid, subcategory);
 	
 	Information.find({skill:skill, category:category, sub_category:subcategory }).exec( function(err, informationList) {
 		if(err){
@@ -1362,4 +1381,3 @@ app.use("/uploads",express.static("./uploads"));
         res.sendFile(path.join(__dirname, './client/build/index.html'));
     });
 // }
-
